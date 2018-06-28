@@ -6,10 +6,14 @@ Jenkins 2.x 이상에서는 build item으로 Pipeline 형식을 제공하고, Pi
 > JenkinsFile : Pipeline설정을 정의한 Groovy파일. 해당 파일에 Pipeline설정을 작성한다.
 
 ### 개념
-- Pipeline : 파이프라인은 CD Pipeline 모델을 나타낸다. 해당 부분의 코드는 전체 빌드 프로세스를 정의한다. 일반적으로 빌드, 테스트, 배포 등의 Stage를 포함하는 형식이 된다.
-- Node : Pipeline을 수행할 Jenkins 머신을 나타낸다.
-- Stage : 빌드, 테스트 등과 같은 개념적으로 분리된 Subset을 나타낸다.
-- Step : 단일 Task를 의미한다. (ex. sh 'make')
+- pipeline : 파이프라인은 CD Pipeline 모델을 나타낸다. 해당 부분의 코드는 전체 빌드 프로세스를 정의한다. 일반적으로 빌드, 테스트, 배포 등의 Stage를 포함하는 형식이 된다.  
+(선언적 파이프라인 형식으로, script를 사용하기 위해서는 scipt영역을 지정해야 함)
+- node : script 파이프라인 형식으로, script 키워드 없이 내부 스크립트 작성 가능
+- stage : 빌드, 테스트 등과 같은 개념적으로 분리된 Subset을 나타낸다.
+- step : Stage 내부에 위치하는 단일 Task를 의미한다. (ex. sh 'make')
+- script : groovy스크립트를 사용하는 경우 script scope 내에 작성
+- post : 파이프라인 실행이 종료된 이후의 작업 설정
+- triggers : 파이프라인 트리거 설정 (cron, pollSCM 등의 키워드로 설정함)
 - overview :
 ```
 pipeline {
@@ -31,6 +35,26 @@ pipeline {
             }
         }
     }
+    post {
+      always {
+        echo 'bra bra'
+      }
+      failure {
+        echo 'fail!'
+      }
+    }
+}
+```
+```
+// node 키워드로 파이프라인을 정의하면, script {} 없이 if-else와 같은 스크립트 작성 가능
+node {
+    stage('Example') {
+        if (env.BRANCH_NAME == 'master') {
+            echo 'I only execute on the master branch'
+        } else {
+            echo 'I execute elsewhere'
+        }
+    }
 }
 ```
 
@@ -47,60 +71,76 @@ pipeline {
 pipeline {
     agent any
 
+    triggers {
+        pollSCM('* * * * *')
+    }
+
     stages {
         stage('Kill previous instance') {
             steps {
-                
+                bat 'set PID=0\n' +
+                        'FOR /F \"tokens=5 delims= \" %%P IN (\'netstat -ano ^| findstr :8093\') DO SET /A PID=%%P\n' +
+                        'IF /I \"%PID%\" GEQ \"1\" (\n' +
+                        '    TaskKill /F /PID %PID%\n' +
+                        ')'
+                bat 'ping 127.0.0.1 -n 11 > nul'
             }
         }
 
-        stage('unit test') {
+        stage('Refresh gradle dependency') {
+            steps {
+                bat 'gradlew --refresh-dependencies'
+            }
+        }
+
+        stage('Unit test') {
             steps {
                 bat 'gradlew clean test'
             }
         }
 
-        stage('component test') {
+        stage('Component test') {
             steps {
                 bat 'gradlew componentTest'
             }
         }
 
-        stage('contract test') {
+        stage('Contract test') {
             steps {
                 script {
-                    String path = pwd() // 현재 경로 출력
+                    String currentDirectory = pwd()
                     try {
                         bat 'gradlew contractTest'
                     }
-                    // 테스트 실패 시 결과 업로드
+
                     catch (err) {
-                        bat 
+                        bat 'gradlew updateContractTestResult --from=decision --reportPath=\"' + currentDirectory + '\\build\\reports\\tests\\contractTest\\packages\"'
+                        error("Contract Test Failed!")
                     }
                 }
             }
         }
 
-        stage('update contract test result') {
+        stage('Upload contract test result') {
             steps {
                 script {
-                    String path = pwd()
+                    String currentDirectory = pwd()
+                    bat 'gradlew updateContractTestResult --from=decision --reportPath=\"' + currentDirectory + '\\build\\reports\\tests\\contractTest\\packages\"'
                 }
             }
         }
 
-        stage('build') {
+        stage('Build') {
             steps {
                 bat 'gradlew build'
             }
         }
 
-        stage('run service') {
+        stage('Start service') {
             steps {
-                bat 'start java -jar build/libs/ho-0.0.1-SNAPSHOT.jar'
+                bat 'start java -jar build/libs/msa-mountainbook-decision-service-0.0.1-SNAPSHOT.jar'
             }
         }
-
     }
 }
 ```
@@ -116,5 +156,5 @@ pipeline {
 ---
 #### 참고
 - [파이프라인 개요](https://jenkins.io/doc/book/pipeline/)
-- [명령어 참조](https://jenkins.io/doc/pipeline/steps/workflow-basic-steps/)
+- [파이프라인 Syntax](https://jenkins.io/doc/book/pipeline/syntax/)
 - [샘플 코드](https://jenkins.io/doc/pipeline/examples/)
