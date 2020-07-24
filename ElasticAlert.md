@@ -4,14 +4,13 @@
 Yelp에서 개발한 오픈소스 라이브러리로, Elastic Search의 데이터 패턴에 대한 알림을 설정할 수 있다. 다양한 커스터마이징을 제공함
 
 ## 사용 배경 
-Elastic Search에서 공식 제공하는 Alerting 플러그인은 X-Pack에 포함된 것으로, __유료__임
+Elastic Search에서 공식 제공하는 Alerting 플러그인은 X-Pack에 포함된 것으로, __유료임__
 
 ## Setting
 - pip 패키지 설치
 	```
 	$pip install elastalert
-	$pip install elasticsearch # 설치된 버전과 확인
-
+	$pip install elasticsearch # 설치된 Elastic버전에 맞는 지 확인필요
 	```
 - config 설정
 	- [elastalert git hub](https://github.com/Yelp/elastalert])에서 config.yaml.example 복사
