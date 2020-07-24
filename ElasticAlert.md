@@ -43,8 +43,6 @@ Elastic Search에서 공식 제공하는 Alerting 플러그인은 X-Pack에 포�
 ```
 $elastalert-test-rule --config config.yaml rules/default_rules.yaml
 ```
-- AI서버의 경우, 환경변수로 HTTP_PROXY가 세팅되어있어 동작이 안됨. 콘솔 명령을 통해 해당 값을 해제해야 함
-	- $set HTTP_PROXY=
 
 # 실행 
 ```
