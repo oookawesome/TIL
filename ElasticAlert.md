@@ -29,7 +29,7 @@ Elastic Search에서 공식 제공하는 Alerting 플러그인은 X-Pack에 포�
 			- type 종류는 [doc참조](https://elastalert.readthedocs.io/en/latest/ruletypes.html#rule-types)
 			- any : 매칭되면 알림
 		- index : 조회할 elastic 인덱스
-			- aiserver_prod-*
+			- server-*
 		- filter : elastic search 필터 설정
 			- [es 웹페이지 참조](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl.html)
 			- query_string
